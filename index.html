@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Le New Yorkais — Menu Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --paper:#ECE5DA; --ink:#0A0808; --red:#D81E2A; --red-dark:#A2121C;
+    --muted:#58524A; --line:rgba(10,8,8,.15); --stamp:#1c8a3a;
+  }
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'DM Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);
+    min-height:100vh;padding-bottom:120px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.25 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* -------- Masthead -------- */
+  .masthead{
+    max-width:1200px;margin:0 auto;padding:22px 28px 16px;
+    border-bottom:6px double var(--ink);position:sticky;top:0;z-index:50;
+    background:var(--paper);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:baseline;gap:14px;}
+  .brand .logo{
+    font-family:'Big Shoulders Display',sans-serif;font-weight:900;
+    font-size:34px;letter-spacing:-1px;text-transform:uppercase;line-height:.9;
+  }
+  .brand .logo .red{color:var(--red);}
+  .brand .tag{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--muted);
+    border-left:1px solid var(--ink);padding-left:12px;
+  }
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    padding:10px 16px;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);
+    cursor:pointer;font-weight:700;transition:all .15s;
+  }
+  .btn:hover{background:var(--ink);color:var(--paper);}
+  .btn.primary{background:var(--red);color:var(--paper);border-color:var(--red-dark);}
+  .btn.primary:hover{background:var(--red-dark);}
+  .btn.ghost{border-color:var(--muted);color:var(--muted);}
+  .btn.ghost:hover{background:var(--muted);color:var(--paper);border-color:var(--muted);}
+
+  /* -------- Layout -------- */
+  .app{max-width:1200px;margin:0 auto;padding:24px 28px;}
+  .status{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:10px;
+  }
+  .status .dot{width:8px;height:8px;background:var(--stamp);border-radius:50%;box-shadow:0 0 0 3px rgba(28,138,58,.2);}
+
+  /* -------- Section card -------- */
+  .section-card{
+    background:var(--paper);border:2px solid var(--ink);margin-bottom:28px;
+    box-shadow:6px 6px 0 var(--ink);
+  }
+  .section-head{
+    background:var(--red);color:var(--paper);padding:14px 22px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .section-head .num{
+    font-family:'Space Mono',monospace;font-size:12px;letter-spacing:3px;opacity:.85;
+  }
+  .section-head input.section-name{
+    background:transparent;border:none;color:var(--paper);
+    font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-size:30px;
+    text-transform:uppercase;letter-spacing:2px;flex:1;min-width:180px;
+    border-bottom:2px dashed rgba(255,255,255,.35);padding:2px 4px;outline:none;
+  }
+  .section-head input.section-name:focus{border-bottom-color:var(--paper);}
+  .section-head .sec-actions{display:flex;gap:6px;}
+  .icon-btn{
+    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);
+    color:var(--paper);width:34px;height:34px;display:grid;place-items:center;
+    cursor:pointer;font-size:14px;font-weight:700;transition:all .15s;
+  }
+  .icon-btn:hover{background:var(--paper);color:var(--red);}
+  .icon-btn.danger:hover{background:var(--ink);color:var(--red);}
+
+  /* -------- Items grid -------- */
+  .items-grid{
+    padding:18px;display:grid;gap:14px;
+    grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+  }
+  .item-card{
+    border:1.5px solid var(--ink);background:var(--paper);
+    display:grid;grid-template-columns:110px 1fr;gap:0;position:relative;
+    transition:transform .15s,box-shadow .15s;
+  }
+  .item-card:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink);}
+  .item-card.combo{grid-template-columns:1fr;}
+  .item-card .drag{
+    position:absolute;top:6px;left:6px;font-family:'Space Mono',monospace;
+    font-size:10px;color:var(--muted);cursor:grab;user-select:none;
+    background:var(--paper);padding:2px 5px;border:1px solid var(--line);
+  }
+  .item-card .del{
+    position:absolute;top:6px;right:6px;width:24px;height:24px;
+    border:1px solid var(--ink);background:var(--paper);color:var(--ink);
+    display:grid;place-items:center;cursor:pointer;font-weight:700;font-size:14px;line-height:1;
+  }
+  .item-card .del:hover{background:var(--red);color:var(--paper);border-color:var(--red);}
+
+  .photo-slot{
+    aspect-ratio:1;background:#f2ede4;border-right:1.5px solid var(--ink);
+    position:relative;overflow:hidden;cursor:pointer;
+    display:grid;place-items:center;
+  }
+  .photo-slot img{width:100%;height:100%;object-fit:cover;display:block;}
+  .photo-slot .placeholder{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;
+    color:var(--muted);text-align:center;text-transform:uppercase;padding:8px;
+  }
+  .photo-slot:hover::after{
+    content:"CHANGE";position:absolute;inset:0;background:rgba(10,8,8,.65);color:var(--paper);
+    display:grid;place-items:center;font-family:'Space Mono',monospace;
+    font-size:11px;letter-spacing:3px;
+  }
+
+  .card-body{padding:14px 12px 12px;display:flex;flex-direction:column;gap:6px;}
+  .card-body input.name,.card-body textarea.sub,.card-body input.price{
+    background:transparent;border:none;outline:none;color:var(--ink);width:100%;
+    padding:2px 4px;border-bottom:1px dashed transparent;transition:border-color .15s;
+    font-family:inherit;
+  }
+  .card-body input.name:hover,.card-body textarea.sub:hover,.card-body input.price:hover,
+  .card-body input.name:focus,.card-body textarea.sub:focus,.card-body input.price:focus{
+    border-bottom-color:var(--red);
+  }
+  .card-body input.name{
+    font-family:'Big Shoulders Display',sans-serif;font-weight:800;font-size:22px;
+    letter-spacing:.5px;text-transform:uppercase;line-height:1.05;
+  }
+  .card-body textarea.sub{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.5px;color:var(--muted);
+    resize:vertical;min-height:22px;line-height:1.4;
+  }
+  .price-row{
+    margin-top:6px;padding-top:8px;border-top:1px dotted var(--line);
+    display:flex;align-items:baseline;gap:6px;
+  }
+  .card-body input.price{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:20px;color:var(--red);
+    text-align:right;flex:1;
+  }
+  .price-row .da{
+    font-family:'Space Mono',monospace;font-size:11px;color:var(--ink);letter-spacing:1px;
+  }
+
+  /* combos */
+  .combo-body{padding:16px;text-align:left;}
+  .combo-body input.label{
+    background:transparent;border:none;outline:none;
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--red);width:100%;
+    border-bottom:1px dashed transparent;padding:2px 0;font-weight:700;
+  }
+  .combo-body input.label:hover,.combo-body input.label:focus{border-bottom-color:var(--red);}
+  .combo-body textarea.combo-items{
+    background:transparent;border:none;outline:none;width:100%;resize:vertical;
+    font-family:'Big Shoulders Display',sans-serif;font-weight:800;font-size:22px;
+    line-height:1.1;text-transform:uppercase;letter-spacing:.5px;
+    margin-top:8px;padding:4px 0;min-height:60px;
+    border-bottom:1px dashed transparent;
+  }
+  .combo-body textarea.combo-items:hover,.combo-body textarea.combo-items:focus{border-bottom-color:var(--red);}
+
+  .add-item-btn{
+    border:2px dashed var(--muted);background:transparent;color:var(--muted);
+    font-family:'Space Mono',monospace;font-size:12px;letter-spacing:3px;
+    text-transform:uppercase;padding:26px;cursor:pointer;transition:all .15s;
+    display:grid;place-items:center;font-weight:700;
+  }
+  .add-item-btn:hover{border-color:var(--red);color:var(--red);background:rgba(216,30,42,.05);}
+
+  /* -------- Add section -------- */
+  .add-section{
+    text-align:center;margin:30px 0 20px;
+  }
+
+  /* -------- Toast -------- */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--paper);padding:14px 22px;
+    font-family:'Space Mono',monospace;font-size:12px;letter-spacing:2px;
+    text-transform:uppercase;opacity:0;transition:all .25s;z-index:100;
+    border-left:4px solid var(--red);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* -------- Modal (preview) -------- */
+  .modal{
+    position:fixed;inset:0;background:rgba(10,8,8,.75);display:none;
+    align-items:center;justify-content:center;z-index:200;padding:20px;
+  }
+  .modal.show{display:flex;}
+  .modal .frame{
+    width:100%;max-width:920px;height:90vh;background:var(--paper);
+    border:2px solid var(--ink);box-shadow:10px 10px 0 var(--red);
+    display:flex;flex-direction:column;
+  }
+  .modal .frame header{
+    background:var(--ink);color:var(--paper);padding:12px 18px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'Space Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;
+  }
+  .modal iframe{flex:1;width:100%;border:none;background:var(--paper);}
+
+  /* Sticky footer bar */
+  .action-bar{
+    position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:var(--paper);
+    padding:14px 24px;display:flex;justify-content:space-between;align-items:center;
+    gap:14px;flex-wrap:wrap;z-index:40;border-top:4px solid var(--red);
+  }
+  .action-bar .info{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.75;
+  }
+  .action-bar .btn{background:var(--paper);color:var(--ink);border-color:var(--paper);}
+  .action-bar .btn:hover{background:var(--red);color:var(--paper);border-color:var(--red);}
+  .action-bar .btn.primary{background:var(--red);color:var(--paper);border-color:var(--red);}
+  .action-bar .btn.primary:hover{background:var(--paper);color:var(--red);}
+
+  @media(max-width:600px){
+    .brand .logo{font-size:24px;}
+    .brand .tag{display:none;}
+    .items-grid{grid-template-columns:1fr;padding:12px;}
+    .action-bar{flex-direction:column;padding:12px;}
+    .action-bar .info{text-align:center;}
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">
+    <div class="logo">LE <span class="red">NEW YORKAIS</span></div>
+    <div class="tag">Menu Editor · Studio</div>
+  </div>
+  <div class="toolbar">
+    <button class="btn ghost" id="btn-reset">↺ Reset</button>
+    <button class="btn ghost" id="btn-import">↑ Import JSON</button>
+    <button class="btn ghost" id="btn-export-json">↓ Export JSON</button>
+    <button class="btn" id="btn-preview">◉ Preview</button>
+    <button class="btn primary" id="btn-export-html">⬇ Export HTML</button>
+  </div>
+</header>
+
+<main class="app">
+  <div class="status">
+    <span class="dot"></span>
+    <span id="status-text">Auto-saved locally · edits persist in this browser</span>
+  </div>
+  <div id="sections"></div>
+  <div class="add-section">
+    <button class="btn" id="btn-add-section">＋ Add New Section</button>
+  </div>
+</main>
+
+<div class="action-bar">
+  <div class="info">Changes save automatically to your browser. Export HTML when ready to publish.</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn" id="btn-preview2">Preview</button>
+    <button class="btn primary" id="btn-export-html2">Export HTML</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<div class="modal" id="modal">
+  <div class="frame">
+    <header>
+      <span>Live Preview</span>
+      <button class="icon-btn" id="modal-close" style="background:var(--red);border-color:var(--red);">✕</button>
+    </header>
+    <iframe id="preview-frame"></iframe>
+  </div>
+</div>
+
+<input type="file" id="file-image" accept="image/*" style="display:none">
+<input type="file" id="file-json" accept="application/json" style="display:none">
+
+<script>
+/* ============================================================
+   Default menu data — extracted from le-new-yorkais.html
+   ============================================================ */
+const IMG_BASE = "https://raw.githubusercontent.com/Souheilcharefkhoudja/NEW-YORKAIS/main/";
+
+const DEFAULT_DATA = {
+  header:{
+    eyebrow:"★ NUMÉRO 1 DU SMASH BURGER EN ALGÉRIE",
+    title1:"LE", title2:"NEW", title3:"YORKAIS",
+    subtitle:"The Menu — Hand-Smashed Daily",
+    meta:"10H — 2H · 0557 37 72 51",
+    address:"Ain Allah · Dely Brahim · Alger",
+    hours:"Tous les jours 10H — 2H",
+    phone:"0557 37 72 51"
+  },
+  sections:[
+    {id:"boxes",name:"Boxes",type:"items",items:[
+      {name:"Trufato Box",sub:"Smash + Frites + Sauce Truffe + Parmesano",price:"1800",img:"truffat-box.jpg"},
+      {name:"BBQ Box",sub:"Smash + Frites + Sauce BBQ + Onion Crispy",price:"1200",img:"E78E59BA-EEC9-459A-8509-85E121238D14.jpeg"},
+      {name:"Crispy Box",sub:"Crispy + Frites + Sauce Curry + Onion Crispy",price:"1800",img:"crispy-box.jpg"},
+      {name:"Cheesy Bacon",sub:"Smash + Frites + Cheesy + Bacon",price:"1500",img:"B2AFE5AF-1F3D-4AB3-9A64-77957FC98845.jpeg"},
+      {name:"India Box",sub:"Smash + Frites + Curry + Onion Crispy",price:"1300",img:"90071CF4-A7FB-40EE-8391-5E051E3A6966.jpeg"},
+      {name:"Pink Lady",sub:"Smash + Frites de Betteraves + Sauce Pink + Chips à l'ail",price:"1200",img:"pink-lady-box.jpg"},
+      {name:"Box Péro",sub:"Smash + Frites + Sauce Avocado + Sauce Fromagère",price:"1800",img:"box-pero.jpg"},
+      {name:"Sweet Chili",sub:"Crispy + Frites + Sauce Sweet Chili + Onion Crispy",price:"1500",img:"sweet-chili.jpg"},
+      {name:"Hot Chili",sub:"Crispy + Frites + Sauce Hot Chili + Onion Crispy",price:"1500",img:"hot-chili.jpg"},
+    ]},
+    {id:"family",name:"Family & Box",type:"combos",items:[
+      {label:"Family",items:"4 Smash Crispy\n+ 12 Tenders\n+ 4 Frites",price:"3800"},
+      {label:"Box · Trio",items:"3 Smash Crispy\n+ 9 Tenders\n+ 3 Frites",price:"3300"},
+      {label:"Box · Duo",items:"2 Smash Crispy\n+ 6 Tenders\n+ 2 Frites",price:"2500"},
+      {label:"Box · Solo",items:"1 Smash Crispy\n+ 4 Tenders\n+ 1 Frite",price:"1800"},
+    ]},
+    {id:"smash",name:"Smash Burgers",type:"items",items:[
+      {name:"Smash L",sub:"100g viande",price:"650",img:"smash-l.jpg"},
+      {name:"Smash XL",sub:"200g viande",price:"950",img:"smash-xl-850.jpg"},
+      {name:"Smash XXL",sub:"300g viande",price:"1200",img:"smash-xxl.jpg"},
+      {name:"Smash Crispy",sub:"",price:"650",img:"smash-crispy.jpg"},
+      {name:"Smash Camembert Miel",sub:"",price:"850",img:"smash-camembert.jpg"},
+      {name:"Smash Mushroom",sub:"",price:"850",img:"smash-mushroom.jpg"},
+      {name:"Smash Bacon",sub:"Cheesy + Bacon",price:"850",img:"smash-bacon.jpg"},
+      {name:"Smash Truffe",sub:"Sauce Truffe + Parmesano",price:"950",img:"smash-truffe.jpg"},
+      {name:"Smash Egg",sub:"",price:"750",img:"smash-egg.jpg"},
+      {name:"Smash Avocado",sub:"",price:"950",img:"smash-avocado.jpg"},
+      {name:"Smash Bleu",sub:"",price:"850",img:"smash-bleu.jpg"},
+      {name:"Smash Pastrami",sub:"",price:"1100",img:"smash-pastrami.jpg"},
+    ]},
+    {id:"sandwich",name:"Sandwiches",type:"items",items:[
+      {name:"Pastrami Peru",sub:"",price:"1800",img:"sandwich-pastrami-peru.png"},
+      {name:"Garlic Chicken",sub:"",price:"1200",img:"sandwich-garlic-chicken.png"},
+      {name:"Crispy India",sub:"",price:"1200",img:"sandwich-crispy-india.png"},
+      {name:"Mixe Spicy",sub:"",price:"1400",img:"sandwich-mixe-spicy.png"},
+      {name:"Beef BBQ",sub:"",price:"1300",img:"sandwich-beef-bbq.png"},
+    ]},
+    {id:"pasta",name:"Pasta",type:"items",items:[
+      {name:"Pasta Fromagère",sub:"",price:"650",img:""},
+      {name:"Pasta Poulet",sub:"",price:"950",img:""},
+      {name:"Pasta Poulet Champignons",sub:"",price:"1250",img:""},
+      {name:"Pasta Poulet Fumé",sub:"",price:"950",img:""},
+      {name:"Pasta Truffato",sub:"",price:"1500",img:""},
+    ]},
+    {id:"sides",name:"Sides",type:"items",items:[
+      {name:"Tenders",sub:"",price:"750",img:""},
+      {name:"Frites",sub:"",price:"200",img:""},
+      {name:"Fries Chessy",sub:"",price:"450",img:""},
+      {name:"Fries Chessy Nuggets",sub:"",price:"750",img:""},
+      {name:"Fries Chessy Beef",sub:"",price:"850",img:""},
+      {name:"Mac & Cheese Nuggets",sub:"",price:"1250",img:""},
+      {name:"Spicy Potatoes",sub:"",price:"650",img:"potato-spicy.jpg"},
+      {name:"Smoky Potatoes",sub:"",price:"650",img:"potato-smoky.jpg"},
+      {name:"Indian Potatoes",sub:"",price:"650",img:"potato-indian.jpg"},
+      {name:"Garlic Potatoes",sub:"",price:"650",img:"potato-garlic.jpg"},
+      {name:"Cheesy Potatoes",sub:"",price:"650",img:"potato-cheesy.jpg"},
+    ]},
+    {id:"sweet",name:"Dessert & Drinks",type:"items",items:[
+      {name:"Tiramisu",sub:"",price:"500",img:""},
+      {name:"Jus",sub:"",price:"300",img:""},
+      {name:"Soda",sub:"",price:"150",img:""},
+    ]},
+  ]
+};
+
+/* ============================================================
+   State + persistence
+   ============================================================ */
+const LS_KEY = "newyorkais_menu_v1";
+let data = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){}
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+const $sections = document.getElementById("sections");
+function render(){
+  $sections.innerHTML = "";
+  data.sections.forEach((sec, si)=>{
+    const card = document.createElement("section");
+    card.className = "section-card";
+    card.dataset.si = si;
+
+    const head = document.createElement("div");
+    head.className = "section-head";
+    head.innerHTML = `
+      <span class="num">No. ${String(si+1).padStart(2,'0')} / ${String(data.sections.length).padStart(2,'0')}</span>
+      <input class="section-name" value="${escapeAttr(sec.name)}" data-field="section-name">
+      <div class="sec-actions">
+        <button class="icon-btn" title="Move up" data-act="up">↑</button>
+        <button class="icon-btn" title="Move down" data-act="down">↓</button>
+        <button class="icon-btn" title="Toggle type" data-act="type">${sec.type==='items'?'≡':'▦'}</button>
+        <button class="icon-btn danger" title="Delete section" data-act="del-section">✕</button>
+      </div>`;
+    card.appendChild(head);
+
+    const grid = document.createElement("div");
+    grid.className = "items-grid";
+
+    sec.items.forEach((it, ii)=>{
+      grid.appendChild(sec.type==="combos" ? renderCombo(it, si, ii) : renderItem(it, si, ii));
+    });
+
+    // add button
+    const add = document.createElement("button");
+    add.className = "add-item-btn";
+    add.textContent = "＋ Add Item";
+    add.onclick = ()=>{
+      if(sec.type==="combos"){
+        sec.items.push({label:"New Combo",items:"Item 1\n+ Item 2",price:"1000"});
+      }else{
+        sec.items.push({name:"New Item",sub:"",price:"0",img:""});
+      }
+      save(); render();
+    };
+    grid.appendChild(add);
+
+    card.appendChild(grid);
+    $sections.appendChild(card);
+  });
+}
+
+function renderItem(it, si, ii){
+  const el = document.createElement("div");
+  el.className = "item-card";
+  const imgSrc = it.img ? (it.img.startsWith("data:")||it.img.startsWith("http") ? it.img : IMG_BASE+it.img) : "";
+  el.innerHTML = `
+    <span class="drag">${String(ii+1).padStart(2,'0')}</span>
+    <button class="del" title="Delete">✕</button>
+    <div class="photo-slot" title="Click to change image">
+      ${imgSrc ? `<img src="${escapeAttr(imgSrc)}" alt="">` : `<div class="placeholder">No Photo<br>Click to Add</div>`}
+    </div>
+    <div class="card-body">
+      <input class="name" value="${escapeAttr(it.name)}" placeholder="Item name">
+      <textarea class="sub" placeholder="Description (optional)" rows="1">${escapeText(it.sub||'')}</textarea>
+      <div class="price-row">
+        <input class="price" value="${escapeAttr(it.price)}" inputmode="numeric" placeholder="0">
+        <span class="da">DA</span>
+      </div>
+    </div>`;
+
+  el.querySelector(".name").oninput = e=>{ it.name=e.target.value; save(); };
+  el.querySelector(".sub").oninput  = e=>{ it.sub=e.target.value; save(); };
+  el.querySelector(".price").oninput= e=>{ it.price=e.target.value.replace(/[^0-9]/g,''); save(); };
+  el.querySelector(".del").onclick = ()=>{
+    if(confirm("Delete this item?")){ data.sections[si].items.splice(ii,1); save(); render(); }
+  };
+  el.querySelector(".photo-slot").onclick = ()=> pickImage(img => { it.img = img; save(); render(); });
+  return el;
+}
+
+function renderCombo(it, si, ii){
+  const el = document.createElement("div");
+  el.className = "item-card combo";
+  el.innerHTML = `
+    <span class="drag">${String(ii+1).padStart(2,'0')}</span>
+    <button class="del" title="Delete">✕</button>
+    <div class="combo-body">
+      <input class="label" value="${escapeAttr(it.label)}" placeholder="Combo label">
+      <textarea class="combo-items" placeholder="One line per item, use + prefix">${escapeText(it.items)}</textarea>
+      <div class="price-row">
+        <input class="price" value="${escapeAttr(it.price)}" inputmode="numeric" placeholder="0">
+        <span class="da">DA</span>
+      </div>
+    </div>`;
+  el.querySelector(".label").oninput = e=>{ it.label=e.target.value; save(); };
+  el.querySelector(".combo-items").oninput = e=>{ it.items=e.target.value; save(); };
+  el.querySelector(".price").oninput = e=>{ it.price=e.target.value.replace(/[^0-9]/g,''); save(); };
+  el.querySelector(".del").onclick = ()=>{
+    if(confirm("Delete this combo?")){ data.sections[si].items.splice(ii,1); save(); render(); }
+  };
+  return el;
+}
+
+/* section actions */
+$sections.addEventListener("click", e=>{
+  const btn = e.target.closest("[data-act]");
+  if(!btn) return;
+  const si = +btn.closest(".section-card").dataset.si;
+  const act = btn.dataset.act;
+  if(act==="del-section"){
+    if(confirm("Delete the whole section?")){ data.sections.splice(si,1); save(); render(); }
+  }else if(act==="up" && si>0){
+    [data.sections[si-1],data.sections[si]] = [data.sections[si],data.sections[si-1]]; save(); render();
+  }else if(act==="down" && si<data.sections.length-1){
+    [data.sections[si+1],data.sections[si]] = [data.sections[si],data.sections[si+1]]; save(); render();
+  }else if(act==="type"){
+    const s = data.sections[si];
+    s.type = s.type==="items" ? "combos" : "items";
+    s.items = s.type==="combos"
+      ? [{label:"New Combo",items:"Item 1\n+ Item 2",price:"1000"}]
+      : [{name:"New Item",sub:"",price:"0",img:""}];
+    save(); render();
+  }
+});
+$sections.addEventListener("input", e=>{
+  if(e.target.dataset.field==="section-name"){
+    const si = +e.target.closest(".section-card").dataset.si;
+    data.sections[si].name = e.target.value;
+    save();
+  }
+});
+
+/* ============================================================
+   Image picker (base64)
+   ============================================================ */
+const $fileImg = document.getElementById("file-image");
+let _imgCb = null;
+$fileImg.addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f || !_imgCb) return;
+  const r = new FileReader();
+  r.onload = ()=>{ _imgCb(r.result); toast("Image updated"); };
+  r.readAsDataURL(f);
+  e.target.value = "";
+});
+function pickImage(cb){ _imgCb = cb; $fileImg.click(); }
+
+/* ============================================================
+   Add section
+   ============================================================ */
+document.getElementById("btn-add-section").onclick = ()=>{
+  const name = prompt("Section name?", "New Section");
+  if(!name) return;
+  data.sections.push({
+    id:name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||("sec"+Date.now()),
+    name, type:"items",
+    items:[{name:"New Item",sub:"",price:"0",img:""}]
+  });
+  save(); render();
+};
+
+/* ============================================================
+   Reset / Import / Export
+   ============================================================ */
+document.getElementById("btn-reset").onclick = ()=>{
+  if(confirm("Reset to the original menu? Your changes will be lost.")){
+    data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    save(); render(); toast("Reset done");
+  }
+};
+
+document.getElementById("btn-export-json").onclick = ()=>{
+  download("menu.json", JSON.stringify(data,null,2), "application/json");
+};
+document.getElementById("btn-import").onclick = ()=> document.getElementById("file-json").click();
+document.getElementById("file-json").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const d = JSON.parse(r.result);
+      if(!d.sections) throw new Error("Invalid JSON");
+      data = d; save(); render(); toast("Imported");
+    }catch(err){ alert("Invalid JSON: "+err.message); }
+  };
+  r.readAsText(f);
+  e.target.value = "";
+});
+
+/* ============================================================
+   Preview & HTML export
+   ============================================================ */
+function buildHTML(){
+  const H = data.header;
+  const sectionsHTML = data.sections.map((sec, si)=>{
+    const num = `No. ${String(si+1).padStart(2,'0')} / ${String(data.sections.length).padStart(2,'0')}`;
+    let body="";
+    if(sec.type==="combos"){
+      body = `<div class="combos">${sec.items.map(it=>`
+      <div class="combo">
+        <div class="combo-label">${esc(it.label)}</div>
+        <div class="combo-items">${esc(it.items).replace(/\n/g,'<br>').replace(/\+/g,'<span class="plus">+</span>')}</div>
+        <div class="combo-price">${esc(it.price)}<span class="da">DA</span></div>
+      </div>`).join("")}</div>`;
+    }else{
+      body = `<div class="items">${sec.items.map(it=>{
+        const hasPhoto = !!it.img;
+        const hasSub = !!(it.sub && it.sub.trim());
+        const src = it.img ? (it.img.startsWith("data:")||it.img.startsWith("http") ? it.img : it.img) : "";
+        if(hasPhoto && hasSub){
+          return `<div class="item">
+            <img class="item-photo" src="${escAttr(src)}" alt="">
+            <div class="item-name-wrap"><div class="item-name">${esc(it.name)}</div><span class="item-sub">${esc(it.sub)}</span></div>
+            <div class="item-price">${esc(it.price)}<span class="da">DA</span></div>
+          </div>`;
+        }else if(hasPhoto){
+          return `<div class="item">
+            <img class="item-photo" src="${escAttr(src)}" alt="">
+            <div class="item-name">${esc(it.name)}</div>
+            <div class="item-price">${esc(it.price)}<span class="da">DA</span></div>
+          </div>`;
+        }else{
+          return `<div class="item no-photo"><div class="item-name">${esc(it.name)}</div><div class="item-price">${esc(it.price)}<span class="da">DA</span></div></div>`;
+        }
+      }).join("")}</div>`;
+    }
+    return `
+  <section id="${esc(sec.id)}">
+    <div class="section-bar"><span class="name">${esc(sec.name)}</span><span class="index">${num}</span></div>
+    ${body}
+  </section>`;
+  }).join("");
+
+  const toc = data.sections.map((s,i)=>`<a href="#${esc(s.id)}"><span class="num">${String(i+1).padStart(2,'0')}</span>${esc(s.name)}</a>`).join("\n    ");
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Le New Yorkais — Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --paper:#ECE5DA; --ink:#0A0808; --red:#D81E2A; --red-dark:#A2121C; --muted:#58524A; }
+  html { scroll-behavior: smooth; }
+  body { font-family:'DM Sans',system-ui,sans-serif; background:var(--paper); color:var(--ink); min-height:100vh;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.25 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"); }
+  .page { max-width:880px; margin:0 auto; background:var(--paper); border-left:2px solid var(--ink); border-right:2px solid var(--ink); min-height:100vh; }
+  .masthead { border-bottom:6px double var(--ink); padding:18px 32px 14px; display:flex; align-items:center; justify-content:space-between; gap:16px; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:2px; }
+  .masthead .back { color:var(--ink); text-decoration:none; } .masthead .back:hover { color:var(--red); }
+  .masthead .date { color:var(--muted); }
+  .title-block { padding:40px 32px 30px; border-bottom:2px solid var(--ink); position:relative; }
+  .eyebrow { font-family:'Space Mono',monospace; font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--red); margin-bottom:12px; }
+  .title { font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:clamp(80px,18vw,200px); line-height:.82; letter-spacing:-2px; color:var(--ink); text-transform:uppercase; }
+  .title .red { color:var(--red); }
+  .subtitle { font-family:'Big Shoulders Display',sans-serif; font-weight:700; font-size:22px; letter-spacing:1px; margin-top:14px; text-transform:uppercase; border-top:1px solid var(--ink); padding-top:14px; display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:12px; }
+  .subtitle .meta { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:2px; color:var(--muted); font-weight:400; }
+  .toc { padding:20px 32px; border-bottom:2px solid var(--ink); display:flex; flex-wrap:wrap; gap:4px 24px; font-family:'Space Mono',monospace; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; }
+  .toc a { color:var(--ink); text-decoration:none; border-bottom:1px solid transparent; padding:2px 0; transition:border-color .15s,color .15s; }
+  .toc a:hover { color:var(--red); border-bottom-color:var(--red); }
+  .toc a .num { color:var(--red); margin-right:6px; }
+  section { padding:0; border-bottom:2px solid var(--ink); }
+  .section-bar { background:var(--red); color:var(--paper); padding:14px 32px; display:flex; justify-content:space-between; align-items:baseline; font-family:'Big Shoulders Display',sans-serif; font-weight:900; text-transform:uppercase; letter-spacing:2px; }
+  .section-bar .name { font-size:32px; line-height:1; }
+  .section-bar .index { font-family:'Space Mono',monospace; font-size:13px; letter-spacing:3px; font-weight:400; opacity:.85; }
+  .items { padding:6px 0; }
+  .item { display:grid; grid-template-columns:92px 1fr auto; align-items:center; gap:22px; padding:14px 32px; border-bottom:1px solid rgba(10,8,8,.15); transition:background .15s; }
+  .item:last-child { border-bottom:none; }
+  .item:hover { background:rgba(216,30,42,.06); }
+  .item-photo { width:92px; height:92px; object-fit:cover; display:block; border:1.5px solid var(--ink); transition:transform .2s; }
+  .item:hover .item-photo { transform:rotate(-1.5deg); }
+  .item.no-photo { grid-template-columns:1fr auto; }
+  .item-name { font-family:'Big Shoulders Display',sans-serif; font-weight:800; font-size:28px; letter-spacing:.5px; text-transform:uppercase; line-height:1; position:relative; overflow:hidden; display:flex; align-items:baseline; }
+  .item-name::after { content:" ................................................................................................................................."; color:var(--muted); margin-left:10px; overflow:hidden; white-space:nowrap; flex:1; letter-spacing:1px; font-family:'Space Mono',monospace; font-size:14px; transform:translateY(-4px); }
+  .item-sub { font-family:'Space Mono',monospace; font-size:12px; letter-spacing:1px; color:var(--muted); text-transform:none; margin-top:4px; display:block; }
+  .item-name-wrap { display:flex; flex-direction:column; overflow:hidden; }
+  .item-price { font-family:'Space Mono',monospace; font-weight:700; font-size:20px; color:var(--red); letter-spacing:.5px; white-space:nowrap; }
+  .item-price .da { font-size:12px; color:var(--ink); margin-left:4px; font-weight:400; }
+  .combos { padding:22px 32px; display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0; }
+  .combo { border:1.5px solid var(--ink); padding:20px 18px; text-align:left; margin:-0.75px; background:var(--paper); transition:background .15s; }
+  .combo:hover { background:var(--ink); color:var(--paper); } .combo:hover .combo-label { color:var(--paper); } .combo:hover .combo-price { color:var(--red); }
+  .combo-label { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--red); margin-bottom:10px; }
+  .combo-items { font-family:'Big Shoulders Display',sans-serif; font-weight:800; font-size:26px; line-height:1; text-transform:uppercase; letter-spacing:.5px; }
+  .combo-items .plus { color:var(--red); margin:0 4px; }
+  .combo-price { font-family:'Space Mono',monospace; font-weight:700; font-size:22px; margin-top:14px; padding-top:10px; border-top:1px solid currentColor; color:var(--red); }
+  .combo-price .da { font-size:12px; color:inherit; opacity:.7; margin-left:4px; font-weight:400; }
+  .colophon { padding:32px; text-align:center; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); line-height:2; }
+  .colophon .big { font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:24px; color:var(--ink); letter-spacing:3px; margin-bottom:8px; }
+  .colophon .big .red { color:var(--red); }
+  @media (max-width:600px) {
+    .masthead { padding:14px 18px 12px; font-size:10px; }
+    .title-block { padding:28px 18px 22px; }
+    .toc { padding:16px 18px; }
+    .section-bar { padding:12px 18px; } .section-bar .name { font-size:24px; }
+    .item { padding:12px 18px; gap:14px; grid-template-columns:72px 1fr auto; }
+    .item-photo { width:72px; height:72px; }
+    .item-name { font-size:20px; } .item-name::after { font-size:11px; }
+    .item-sub { font-size:10px; } .item-price { font-size:16px; }
+    .combos { padding:16px 18px; grid-template-columns:1fr 1fr; }
+    .combo { padding:14px 12px; } .combo-items { font-size:20px; } .combo-price { font-size:18px; }
+    .colophon { padding:24px 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <a class="back" href="index.html">← Retour</a>
+    <span class="date">N° 01 / DELY BRAHIM / ALGER</span>
+  </header>
+  <div class="title-block">
+    <div class="eyebrow">${esc(H.eyebrow)}</div>
+    <h1 class="title">${esc(H.title1)}<br>${esc(H.title2)}<br><span class="red">${esc(H.title3)}</span></h1>
+    <div class="subtitle"><span>${esc(H.subtitle)}</span><span class="meta">${esc(H.meta)}</span></div>
+  </div>
+  <nav class="toc">
+    ${toc}
+  </nav>
+${sectionsHTML}
+  <footer class="colophon">
+    <div class="big">LE NEW <span class="red">YORKAIS</span></div>
+    ${esc(H.address)}<br>
+    ${esc(H.hours)}<br>
+    ${esc(H.phone)}
+  </footer>
+</div>
+</body>
+</html>`;
+}
+
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return esc(s).replace(/"/g,'&quot;'); }
+function escapeAttr(s){ return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function escapeText(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function download(name, content, type){
+  const blob = new Blob([content],{type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url); a.remove();}, 100);
+}
+
+function doPreview(){
+  const html = buildHTML();
+  // For preview, swap relative image paths to GitHub raw
+  const withImgs = html.replace(/src="([^"]+)"/g, (m,src)=>{
+    if(src.startsWith("data:")||src.startsWith("http")) return m;
+    return `src="${IMG_BASE+src}"`;
+  });
+  document.getElementById("preview-frame").srcdoc = withImgs;
+  document.getElementById("modal").classList.add("show");
+}
+function doExportHTML(){
+  download("le-new-yorkais.html", buildHTML(), "text/html");
+  toast("HTML exported");
+}
+
+document.getElementById("btn-preview").onclick = doPreview;
+document.getElementById("btn-preview2").onclick = doPreview;
+document.getElementById("btn-export-html").onclick = doExportHTML;
+document.getElementById("btn-export-html2").onclick = doExportHTML;
+document.getElementById("modal-close").onclick = ()=>document.getElementById("modal").classList.remove("show");
+document.getElementById("modal").onclick = e=>{ if(e.target.id==="modal") e.currentTarget.classList.remove("show"); };
+
+/* ============================================================
+   Boot
+   ============================================================ */
+render();
+</script>
+</body>
+</html>
